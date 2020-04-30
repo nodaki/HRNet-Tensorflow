@@ -141,3 +141,8 @@ dmypy.json
 cython_debug/
 
 .idea
+
+# dataset
+data/raw/annotations_trainval2017
+data/raw/train2017
+data/raw/val2017

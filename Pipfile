@@ -7,10 +7,13 @@ verify_ssl = true
 pydot = "*"
 graphviz = "*"
 pydotplus = "*"
+pytest = "*"
 
 [packages]
 tensorflow = "*"
 hydra-core = "*"
+requests = "*"
+click = "*"
 
 [requires]
 python_version = "3.7"
