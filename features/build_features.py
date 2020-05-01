@@ -1,8 +1,7 @@
 import os
+from functools import partial
 
 import tensorflow as tf
-
-from config.config import cfg
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
@@ -28,30 +27,30 @@ def _preprocess_for_reshaping(example):
     return image, label
 
 
-def augment(image, label):
+def augment(image, label, cfg):
     # Random crop
     image = tf.image.random_crop(image, size=(cfg.TRAINING.IMAGE.HEIGHT, cfg.TRAINING.IMAGE.WIDTH, 3), seed=1)
     label = tf.image.random_crop(label, size=(cfg.TRAINING.IMAGE.HEIGHT, cfg.TRAINING.IMAGE.WIDTH, 1), seed=1)
     return image, label
 
 
-def non_augment(image, label):
+def non_augment(image, label, cfg):
     # Random crop
     image = tf.image.random_crop(image, size=(cfg.TRAINING.IMAGE.HEIGHT, cfg.TRAINING.IMAGE.WIDTH, 3), seed=1)
     label = tf.image.random_crop(label, size=(cfg.TRAINING.IMAGE.HEIGHT, cfg.TRAINING.IMAGE.WIDTH, 1), seed=1)
     return image, label
 
 
-def create_dataset(output_dir):
+def create_dataset(cfg, output_dir):
     train_path = os.path.join(output_dir, "train2017.tfrecord")
     train_ds = tf.data.TFRecordDataset(train_path)
     train_ds = train_ds.map(_parse_example, num_parallel_calls=AUTOTUNE)
     train_ds = train_ds.map(_preprocess_for_reshaping, num_parallel_calls=AUTOTUNE)
-    train_ds = train_ds.map(augment, num_parallel_calls=AUTOTUNE).batch(16).prefetch(AUTOTUNE)
+    train_ds = train_ds.map(partial(augment, cfg=cfg), num_parallel_calls=AUTOTUNE).batch(16).prefetch(AUTOTUNE)
 
     validation_path = os.path.join(output_dir, "val2017.tfrecord")
     val_ds = tf.data.TFRecordDataset(validation_path)
     val_ds = val_ds.map(_parse_example, num_parallel_calls=AUTOTUNE)
     val_ds = val_ds.map(_preprocess_for_reshaping, num_parallel_calls=AUTOTUNE)
-    val_ds = val_ds.map(non_augment, num_parallel_calls=AUTOTUNE).batch(16).prefetch(AUTOTUNE)
+    val_ds = val_ds.map(partial(non_augment, cfg=cfg), num_parallel_calls=AUTOTUNE).batch(16).prefetch(AUTOTUNE)
     return train_ds, val_ds
