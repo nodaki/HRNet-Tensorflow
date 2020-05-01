@@ -1,8 +1,8 @@
-TRAINING:
-  IMAGE:
-    HEIGHT: 256
-    WIDTH: 256
+defaults:
+  - model: hrnet_w32
+  - training: default
+  - dataset: all_categories
 
 hydra:
   run:
-    dir: ../logs/${now:%Y-%m-%d_%H-%M-%S}
+    dir: ./logs/${now:%Y-%m-%d}/${now:%H-%M-%S}

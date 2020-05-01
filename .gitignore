@@ -151,3 +151,6 @@ data/processed/val2017.tfrecord
 
 # Category label
 config/category_to_label.json
+
+# hydra log
+tools/logs
