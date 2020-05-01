@@ -146,3 +146,8 @@ cython_debug/
 data/raw/annotations_trainval2017
 data/raw/train2017
 data/raw/val2017
+data/processed/train2017.tfrecord
+data/processed/val2017.tfrecord
+
+# Category label
+config/category_to_label.json
