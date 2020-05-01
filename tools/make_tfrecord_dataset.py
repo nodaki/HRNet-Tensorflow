@@ -57,6 +57,7 @@ def create_tf_record_from_coco_annotations(dataset_cfg: DictConfig, data_dir: st
                 label = np.zeros(shape=(img["height"], img["width"]), dtype=np.int64)
                 for ann in anns:
                     label = np.maximum(label, coco.annToMask(ann) * category_to_label[str(ann["category_id"])])
+                label = np.expand_dims(label, axis=2)
                 tf_example = make_tf_example(image, label, img["height"], img["width"], img["file_name"])
                 writer.write(tf_example.SerializeToString())
                 recorded_images_count += 1
