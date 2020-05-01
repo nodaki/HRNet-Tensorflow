@@ -46,11 +46,18 @@ def create_dataset(cfg, output_dir):
     train_ds = tf.data.TFRecordDataset(train_path)
     train_ds = train_ds.map(_parse_example, num_parallel_calls=AUTOTUNE)
     train_ds = train_ds.map(_preprocess_for_reshaping, num_parallel_calls=AUTOTUNE)
-    train_ds = train_ds.map(partial(augment, cfg=cfg), num_parallel_calls=AUTOTUNE).batch(16).prefetch(AUTOTUNE)
+    train_ds = train_ds.\
+        shuffle(buffer_size=cfg.TRAINING.SHUFFLE). \
+        map(partial(augment, cfg=cfg), num_parallel_calls=AUTOTUNE). \
+        batch(cfg.TRAINING.BATCH_SIZE). \
+        prefetch(AUTOTUNE)
 
     validation_path = os.path.join(output_dir, "val2017.tfrecord")
     val_ds = tf.data.TFRecordDataset(validation_path)
     val_ds = val_ds.map(_parse_example, num_parallel_calls=AUTOTUNE)
     val_ds = val_ds.map(_preprocess_for_reshaping, num_parallel_calls=AUTOTUNE)
-    val_ds = val_ds.map(partial(non_augment, cfg=cfg), num_parallel_calls=AUTOTUNE).batch(16).prefetch(AUTOTUNE)
+    val_ds = val_ds. \
+        map(partial(non_augment, cfg=cfg), num_parallel_calls=AUTOTUNE). \
+        batch(cfg.TRAINING.BATCH_SIZE). \
+        prefetch(AUTOTUNE)
     return train_ds, val_ds

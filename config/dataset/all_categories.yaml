@@ -1,2 +1,3 @@
 DATASET:
+  NUM_CLASSES: 81
   catNms:

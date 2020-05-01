@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig
 from tensorflow.keras.layers import Conv2D, BatchNormalization, ReLU, UpSampling2D
 from tensorflow.keras.models import Sequential
 
@@ -228,12 +228,12 @@ class HighResolutionNet(tf.keras.models.Model):
 
         self.cfg = cfg
         extra = self.cfg.MODEL.EXTRA
-        self.inplanes = extra.SETM_INPLANES
+        self.inplanes = extra.STEM_INPLANES
 
         # stem net
-        self.conv1 = Conv2D(filters=64, kernel_size=3, strides=2, padding="same", use_bias=False)
+        self.conv1 = Conv2D(filters=64, kernel_size=3, strides=1, padding="same", use_bias=False)
         self.bn1 = BatchNormalization(momentum=BN_MOMENTUM)
-        self.conv2 = Conv2D(filters=64, kernel_size=3, strides=2, padding="same", use_bias=False)
+        self.conv2 = Conv2D(filters=64, kernel_size=3, strides=1, padding="same", use_bias=False)
         self.bn2 = BatchNormalization(momentum=BN_MOMENTUM)
         self.relu = ReLU()
 
@@ -447,11 +447,3 @@ class HighResolutionNet(tf.keras.models.Model):
 def create_model(cfg: DictConfig):
     model = HighResolutionNet(cfg=cfg)
     return model
-
-
-if __name__ == '__main__':
-    config = OmegaConf.load("../config/hrnet_w32.yaml")
-    hrnet = create_model(cfg=config)
-    hrnet.build(input_shape=(None, 256, 256, 3))
-    predict = hrnet(tf.random.uniform((1, 256, 256, 3), maxval=1.0))
-    assert predict.get_shape() == tf.TensorShape((1, 64, 64, config.DATASET.NUM_CLASSES))
