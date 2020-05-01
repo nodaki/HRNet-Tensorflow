@@ -54,6 +54,9 @@ def create_tf_record_from_coco_annotations(dataset_cfg: DictConfig, data_dir: st
             path = os.path.join(data_dir, trainval, trainval, img["file_name"])
             if anns:
                 image = load_and_preprocess_image(path)
+                # if images is gray scale.
+                if image.ndim == 2:
+                    image = np.tile(np.expand_dims(image, axis=-1), reps=[1, 1, 3])
                 label = np.zeros(shape=(img["height"], img["width"]), dtype=np.int64)
                 for ann in anns:
                     label = np.maximum(label, coco.annToMask(ann) * category_to_label[str(ann["category_id"])])
@@ -78,7 +81,7 @@ def create_category_to_label(catIds):
 @click.command()
 @click.option("--data_dir", "-d", type=str, default=os.getenv("DATA_DIR", "../data/raw"))
 @click.option("--output_dir", "-o", type=str, default=os.getenv("OUTPUT_DIR", "../data/processed"))
-@click.option("--dataset_cfg_path", type=str, default=os.getenv("PROJECT_DIR", "../config/dataset/all.yaml"))
+@click.option("--dataset_cfg_path", type=str, default="../config/dataset/all_categories.yaml")
 def main(data_dir: str, output_dir: str, dataset_cfg_path: str):
     os.makedirs(output_dir, exist_ok=True)
     dataset_cfg = OmegaConf.load(dataset_cfg_path)
