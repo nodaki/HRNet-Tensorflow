@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-class MeanIoUWithLogits(tf.keras.metrics.MeanIoU):
+class MeanIouWithLogits(tf.keras.metrics.MeanIoU):
     """Mean IoU with logits
     https://github.com/tensorflow/tensorflow/issues/32875#issuecomment-542932089
     """
