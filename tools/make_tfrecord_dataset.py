@@ -35,8 +35,8 @@ def create_tf_record_from_coco_annotations(dataset_cfg: DictConfig, data_dir: st
     annotations_file = os.path.join(data_dir, f"annotations_trainval2017/annotations/instances_{trainval}.json")
     coco = COCO(annotation_file=annotations_file)
 
-    if dataset_cfg.catNms:
-        catNms = dataset_cfg.catNms
+    if dataset_cfg.DATASET.catNms:
+        catNms = dataset_cfg.DATASET.catNms
     else:
         # If not specified categories, all categories are set to target
         catNms = [cat["name"] for cat in coco.loadCats(coco.getCatIds())]
@@ -54,6 +54,9 @@ def create_tf_record_from_coco_annotations(dataset_cfg: DictConfig, data_dir: st
             path = os.path.join(data_dir, trainval, trainval, img["file_name"])
             if anns:
                 image = load_and_preprocess_image(path)
+                # if images is gray scale.
+                if image.ndim == 2:
+                    image = np.tile(np.expand_dims(image, axis=-1), reps=[1, 1, 3])
                 label = np.zeros(shape=(img["height"], img["width"]), dtype=np.int64)
                 for ann in anns:
                     label = np.maximum(label, coco.annToMask(ann) * category_to_label[str(ann["category_id"])])
@@ -78,9 +81,10 @@ def create_category_to_label(catIds):
 @click.command()
 @click.option("--data_dir", "-d", type=str, default=os.getenv("DATA_DIR", "../data/raw"))
 @click.option("--output_dir", "-o", type=str, default=os.getenv("OUTPUT_DIR", "../data/processed"))
-def main(data_dir: str, output_dir: str):
+@click.option("--dataset_cfg_path", type=str, default="../config/dataset/all_categories.yaml")
+def main(data_dir: str, output_dir: str, dataset_cfg_path: str):
     os.makedirs(output_dir, exist_ok=True)
-    dataset_cfg = OmegaConf.load(os.path.join(os.getenv("PROJECT_DIR", "../"), "config/dataset.yaml"))
+    dataset_cfg = OmegaConf.load(dataset_cfg_path)
 
     create_tf_record_from_coco_annotations(dataset_cfg, data_dir=data_dir, output_dir=output_dir, trainval="train2017")
     create_tf_record_from_coco_annotations(dataset_cfg, data_dir=data_dir, output_dir=output_dir, trainval="val2017")
