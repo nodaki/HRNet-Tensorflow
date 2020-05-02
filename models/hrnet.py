@@ -12,7 +12,7 @@ def conv3x3(out_planes, stride=1):
     return Conv2D(filters=out_planes, kernel_size=3, strides=stride, padding="same", use_bias=False)
 
 
-class BasicBlock(tf.keras.models.Model):
+class BasicBlock(tf.keras.layers.Layer):
     expansion = 1
 
     def __init__(self, _in_channel, output_dim, stride=1, downsample=None, **kwargs):
@@ -43,7 +43,7 @@ class BasicBlock(tf.keras.models.Model):
         return out
 
 
-class Bottleneck(tf.keras.models.Model):
+class Bottleneck(tf.keras.layers.Layer):
     expansion = 4
 
     def __init__(self, _in_channel, output_dim, stride=1, downsample=None, **kwargs):
@@ -81,7 +81,7 @@ class Bottleneck(tf.keras.models.Model):
         return out
 
 
-class HighResolutionModule(tf.keras.models.Model):
+class HighResolutionModule(tf.keras.layers.Layer):
     def __init__(self,
                  num_branches,
                  blocks,
