@@ -1,0 +1,4 @@
+DATASET:
+  NUM_CLASSES: 2
+  catNms:
+    - person

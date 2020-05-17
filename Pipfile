@@ -17,6 +17,8 @@ click = "*"
 cython = "*"
 pillow = "*"
 tqdm = "*"
+opencv-python = "*"
+hydra-colorlog = "*"
 
 [requires]
 python_version = "3.7"
