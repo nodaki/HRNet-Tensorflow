@@ -1,8 +1,10 @@
 defaults:
   - model: hrnet_w32
-  - training: default
-  - dataset: all_categories
+  - training: hrnet_w32_segmentation
+  - dataset: person
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
 
 hydra:
   run:
-    dir: ./logs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: ../../logs/${now:%Y-%m-%d}/${now:%H-%M-%S}

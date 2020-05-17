@@ -1,15 +1,16 @@
-import os
-
 import hydra
+import logging
+import os
 import tensorflow as tf
 from omegaconf import DictConfig
-from tensorflow.keras.losses import SparseCategoricalCrossentropy
+from src.features.build_features import create_dataset
+from src.models.hrnet_segmentation import create_model
+from tensorflow.keras.losses import BinaryCrossentropy, SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import SparseCategoricalAccuracy
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import Adam
 
-from features.build_features import create_dataset
-from models.hrnet import create_model
-from models.metrics import MeanIouWithLogits
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # GPU limitation
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -19,27 +20,51 @@ if gpus:
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
         logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        logger.info(f"{len(gpus)} Physical GPUs, {len(logical_gpus)} Logical GPUs")
     except RuntimeError as e:
         # Memory growth must be set before GPUs have been initialized
-        print(e)
+        logger.debug(e)
 
 
-@hydra.main(config_path=os.path.join(os.getenv("PROJECT_DIR", "../"), "config/config.yaml"))
+@hydra.main(config_path=os.path.join(os.getenv("PROJECT_DIR", "../"), "src/config/config.yaml"))
 def main(cfg: DictConfig):
-    train_ds, val_ds = create_dataset(cfg=cfg, output_dir=os.getenv("OUTPUT_DIR", "../data/processed"))
-    model = create_model(cfg=cfg)
+    # Distributed training
+    mirrored_strategy = tf.distribute.MirroredStrategy()
+    global_batch_size = int(cfg.TRAINING.BATCH_SIZE * mirrored_strategy.num_replicas_in_sync)
 
-    optimizer = SGD(learning_rate=cfg.TRAINING.LEARNING_RATE, momentum=cfg.TRAINING.MOMENTUM)
+    # Create optimizer
+    optimizer = Adam(learning_rate=cfg.TRAINING.LEARNING_RATE.INIT * mirrored_strategy.num_replicas_in_sync)
+
+    # Create loss object
     loss_object = SparseCategoricalCrossentropy(from_logits=True)
-    tb_callback = tf.keras.callbacks.TensorBoard(log_dir=os.getcwd())
 
-    model.compile(
-            optimizer=optimizer,
-            loss=loss_object,
-            metrics=[SparseCategoricalAccuracy(), MeanIouWithLogits(num_classes=cfg.DATASET.NUM_CLASSES)],
+    # Create callbacks
+    tb_callback = tf.keras.callbacks.TensorBoard(log_dir=os.path.join(os.getcwd(), "tensorboard"))
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+            filepath=os.path.join(os.getcwd(), "model.hdf5"),
+            save_best_only=True,
+            save_weights_only=True
     )
-    model.fit(train_ds, epochs=cfg.TRAINING.EPOCHS, validation_data=val_ds, callbacks=[tb_callback])
+    early_stopping = tf.keras.callbacks.EarlyStopping(patience=cfg.TRAINING.EARLY_STOPPING)
+
+    # Create dataset
+    train_ds = create_dataset(cfg=cfg, output_filepath=os.getenv("OUTPUT_FILEPATH", "../data/processed"),
+                              trainval="train2017", global_batch_size=global_batch_size)
+    valid_ds = create_dataset(cfg=cfg, output_filepath=os.getenv("OUTPUT_FILEPATH", "../data/processed"),
+                              trainval="val2017", global_batch_size=global_batch_size)
+    with mirrored_strategy.scope():
+        model = create_model(cfg=cfg)
+        model.compile(
+                optimizer=optimizer,
+                loss=loss_object,
+                metrics=[SparseCategoricalAccuracy()],
+        )
+        model.fit(
+                x=train_ds,
+                epochs=cfg.TRAINING.EPOCHS,
+                validation_data=valid_ds,
+                callbacks=[tb_callback, early_stopping, checkpoint]
+        )
 
 
 if __name__ == '__main__':
